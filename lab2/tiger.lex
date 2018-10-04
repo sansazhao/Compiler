@@ -160,7 +160,7 @@ digits    [0-9]+
 <STR>\\t {charPos += yyleng;str[len++] = '\t';}
     /* handle \ddd \^C */
 <STR>\\[0-9]{1,3}  {charPos += yyleng;str[len++] = atoi(yytext+1);}
-<STR>\\^[a-zA-Z] {charPos += yyleng;str[len] = '\0';}
+<STR>\\^[A-Z\[\]\^\_\\] {charPos += yyleng;str[len++] = yytext[2] - 'A' + 1;}
 <STR>\\\\  {charPos += yyleng;str[len++]='\\';} 
 <STR>\\  {charPos += yyleng;str[len++]='\\';}
 <STR>\n {charPos += yyleng;EM_newline();str[len++] = '\n';}
