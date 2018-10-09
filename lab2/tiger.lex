@@ -23,9 +23,10 @@ void adjust(void)
 * Please don't modify the lines above.
 * You can add C declarations of your own below.
 */
+
+#define MAXSIZE  2048
 int comment = 0;
 int len = 0;
-int max = 2048;
 char *str = NULL;
 /* @function: getstr
  * @input: a string literal
@@ -34,52 +35,31 @@ char *str = NULL;
  */
 char *getstr(const char *str)
 {
-    char *result = (char *)malloc(yyleng+1);
-    int pos = 1;
-    int len = 0;
-    while(str[pos] != '\"'){
-        /* handle \\ \n \t */
-        if(str[pos] == '\\'){ 
-            if(str[pos+1] == 'n')
-                result[len++] = '\n';
-            else if(str[pos+1] == 't')
-                result[len++] = '\t';
-            else if(str[pos+1] == '\\')
-                result[len++] = '\\';
-            else if(str[pos+1] == '\"')
-                result[len++] = '"';
-          //  else if(str[pos+1] == '^')
-            //    result[len++] = '\\^';
-            else{
-                EM_error(EM_tokPos,"error \\");
-                return NULL;
-            }
-            pos += 2;
-        }
-        else
-            result[len++] = str[pos++];
-    }
-    if(len == 0){
-        free(result);
-        return NULL;
-    }
-    result[len] = '\0';
-	return result;
+    return NULL;
 }
 
+/*  @function:initStr
+ *  malloc the space and initialize the variables to get ready to read string
+ */
 void initStr(){
-    str = (char *)malloc(max);
+    str = (char *)malloc(MAXSIZE);
     str[0] = '\0';
     len = 0;
 }
+
+/*  @function:endStr
+ *  free the space
+ */
 void endStr(){
     free(str);
     str = NULL;
 }
 %}
-  /* You can add lex definitions here. */
   /* Lex Definitions */
-digits    [0-9]+
+
+  /* Use COMMENT to handle comments
+   * Use STR to handle string 
+   */
 %Start COMMENT STR 
 %%
   /* Regular Expressions and Actions */
@@ -91,8 +71,8 @@ digits    [0-9]+
         BEGIN INITIAL;
     if(comment < 0){
         comment = 0;
-        //error
-        REJECT;
+        EM_error(EM_tokPos,"error comment");
+        BEGIN INITIAL;
     } 
 }
 <COMMENT>"\n" {adjust();EM_newline();continue;}
@@ -138,32 +118,34 @@ digits    [0-9]+
 <INITIAL>function {adjust();return FUNCTION;}
 <INITIAL>var {adjust();return VAR;}
 <INITIAL>type {adjust();return TYPE;}
-
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]* {adjust();yylval.sval = String(yytext);return ID;}
 <INITIAL>[0-9]* {adjust();yylval.ival = atoi(yytext);return INT;}
 <INITIAL>"\n" {adjust(); EM_newline(); continue;}
 <INITIAL>[\ \t]* {adjust();}
+    /* Entry of STR */
 <INITIAL>\" {adjust();initStr();BEGIN STR;}
-<INITIAL>. {adjust();}
-
+    /* none matches, print error info  */
+<INITIAL>. {adjust();EM_error(EM_tokPos, "error initial");}
+    /* STR: handle strings */
 <STR>\" {
     charPos += yyleng;
     str[len] = '\0';
     yylval.sval = String(str);
-    if(len == 0)
+    if(len == 0)//return (null)
         yylval.sval = NULL;
     endStr();
     BEGIN INITIAL;
     return STRING;
 }
+    /* handle \ddd \^C */
+<STR>\\[0-9]{1,3}  {charPos += yyleng;str[len++] = atoi(yytext + 1);}
+<STR>\\^[A-Z\[\]\^\_\\] {charPos += yyleng;str[len++] = yytext[2] - 'A' + 1;}
+    /* handle \n, \t, \\, \, real \n, \", \...\ */
 <STR>\\n {charPos += yyleng;str[len++] = '\n';}
 <STR>\\t {charPos += yyleng;str[len++] = '\t';}
-    /* handle \ddd \^C */
-<STR>\\[0-9]{1,3}  {charPos += yyleng;str[len++] = atoi(yytext+1);}
-<STR>\\^[A-Z\[\]\^\_\\] {charPos += yyleng;str[len++] = yytext[2] - 'A' + 1;}
-<STR>\\\\  {charPos += yyleng;str[len++]='\\';} 
-<STR>\\  {charPos += yyleng;str[len++]='\\';}
+<STR>\\\\  {charPos += yyleng;str[len++] = '\\';} 
+<STR>\\  {charPos += yyleng;str[len++] = '\\';}
 <STR>\n {charPos += yyleng;EM_newline();str[len++] = '\n';}
-<STR>\\\" {charPos += yyleng;str[len++]='"';}
+<STR>\\\" {charPos += yyleng;str[len++] = '"';}
 <STR>\\[\n \t\f]+\\ {charPos += yyleng;}
 <STR>. {charPos += yyleng;str[len++] = yytext[0];}
