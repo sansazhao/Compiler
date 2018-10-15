@@ -87,7 +87,8 @@ extern int yydebug;
     NIL = 297,
     FUNCTION = 298,
     VAR = 299,
-    TYPE = 300
+    TYPE = 300,
+    UMINUS = 301
   };
 #endif
 /* Tokens.  */
@@ -134,6 +135,7 @@ extern int yydebug;
 #define FUNCTION 298
 #define VAR 299
 #define TYPE 300
+#define UMINUS 301
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -161,7 +163,7 @@ union YYSTYPE
 	A_ty ty;
 	
 
-#line 165 "y.tab.h" /* yacc.c:1909  */
+#line 167 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
