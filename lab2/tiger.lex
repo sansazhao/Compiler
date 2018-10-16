@@ -26,7 +26,7 @@ void adjust(void)
 
 #define MAXSIZE  2048
 int comment = 0;
-int len = 0;
+int len, total;
 char *str = NULL;
 /* @function: getstr
  * @input: a string literal
@@ -43,10 +43,24 @@ char *getstr(const char *str)
  */
 void initStr(){
     str = (char *)malloc(MAXSIZE);
+    total = MAXSIZE;
     str[0] = '\0';
     len = 0;
 }
 
+void add(char c){
+    if (len + 1 == total) {
+        str = realloc(str, total + MAXSIZE);
+        if (!str) {
+            printf("Add:remalloc error!\n");
+            exit(1);
+        }
+        total += MAXSIZE;
+    }
+    str[len++] = c;
+    str[len] = '\0';
+
+}
 /*  @function:endStr
  *  free the space
  */
@@ -62,90 +76,100 @@ void endStr(){
    */
 %Start COMMENT STR 
 %%
+
   /* Regular Expressions and Actions */
-<COMMENT>"/*" {adjust();++comment;BEGIN COMMENT;}
-<COMMENT>"*/" {
-    adjust();
-    comment--;
-    if(comment == 0)
-        BEGIN INITIAL;
-    if(comment < 0){
-        comment = 0;
-        EM_error(EM_tokPos,"error comment");
-        BEGIN INITIAL;
-    } 
+<COMMENT>{
+    "/*" {adjust();++comment;BEGIN COMMENT;}
+    "*/" {
+        adjust();
+        comment--;
+        if(comment == 0)
+            BEGIN INITIAL;
+        if(comment < 0){
+            comment = 0;
+            EM_error(EM_tokPos,"error comment");
+            BEGIN INITIAL;
+        } 
+    }
+    "\n" {adjust();EM_newline();continue;}
+    . {adjust();}
 }
-<COMMENT>"\n" {adjust();EM_newline();continue;}
-<COMMENT>. {adjust();}
-<INITIAL>"/*" {adjust();++comment;BEGIN COMMENT;}
-<INITIAL>"," {adjust();return COMMA;}
-<INITIAL>":" {adjust();return COLON;}
-<INITIAL>";" {adjust();return SEMICOLON;}
-<INITIAL>"(" {adjust();return LPAREN;}
-<INITIAL>")" {adjust();return RPAREN;}
-<INITIAL>"[" {adjust();return LBRACK;}
-<INITIAL>"]" {adjust();return RBRACK;}
-<INITIAL>"{" {adjust();return LBRACE;}
-<INITIAL>"}" {adjust();return RBRACE;}
-<INITIAL>"." {adjust();return DOT;}
-<INITIAL>"+" {adjust();return PLUS;}
-<INITIAL>"-" {adjust();return MINUS;}
-<INITIAL>"*" {adjust();return TIMES;}
-<INITIAL>"/" {adjust();return DIVIDE;}
-<INITIAL>"=" {adjust();return EQ;}
-<INITIAL>"<>" {adjust();return NEQ;}
-<INITIAL>"<" {adjust();return LT;}
-<INITIAL>"<=" {adjust();return LE;}
-<INITIAL>">" {adjust();return GT;}
-<INITIAL>">=" {adjust();return GE;}
-<INITIAL>"&" {adjust();return AND;}
-<INITIAL>"|" {adjust();return OR;}
-<INITIAL>":=" {adjust();return ASSIGN;}
-<INITIAL>array {adjust();return ARRAY;}
-<INITIAL>if {adjust();return IF;}
-<INITIAL>then {adjust();return THEN;}
-<INITIAL>else {adjust();return ELSE;}
-<INITIAL>while {adjust();return WHILE;}
-<INITIAL>for {adjust();return FOR;}
-<INITIAL>to {adjust();return TO;}
-<INITIAL>do {adjust();return DO;}
-<INITIAL>let {adjust();return LET;}
-<INITIAL>in {adjust();return IN;}
-<INITIAL>end {adjust();return END;}
-<INITIAL>of {adjust();return OF;}
-<INITIAL>break {adjust();return BREAK;}
-<INITIAL>nil {adjust();return NIL;}
-<INITIAL>function {adjust();return FUNCTION;}
-<INITIAL>var {adjust();return VAR;}
-<INITIAL>type {adjust();return TYPE;}
-<INITIAL>[a-zA-Z_][a-zA-Z0-9_]* {adjust();yylval.sval = String(yytext);return ID;}
-<INITIAL>[0-9]* {adjust();yylval.ival = atoi(yytext);return INT;}
-<INITIAL>"\n" {adjust(); EM_newline(); continue;}
-<INITIAL>[\ \t]* {adjust();}
-    /* Entry of STR */
-<INITIAL>\" {adjust();initStr();BEGIN STR;}
-    /* none matches, print error info  */
-<INITIAL>. {adjust();EM_error(EM_tokPos, "error initial");}
+
+<INITIAL>{
+    "/*" {adjust();++comment;BEGIN COMMENT;}
+    ","  {adjust();return COMMA;}
+    ":"  {adjust();return COLON;}
+    ";"  {adjust();return SEMICOLON;}
+    "("  {adjust();return LPAREN;}
+    ")"  {adjust();return RPAREN;}
+    "["  {adjust();return LBRACK;}
+    "]"  {adjust();return RBRACK;}
+    "{"  {adjust();return LBRACE;}
+    "}"  {adjust();return RBRACE;}
+    "."  {adjust();return DOT;}
+    "+"  {adjust();return PLUS;}
+    "-"  {adjust();return MINUS;}
+    "*"  {adjust();return TIMES;}
+    "/"  {adjust();return DIVIDE;}
+    "="  {adjust();return EQ;}
+    "<>" {adjust();return NEQ;}
+    "<"  {adjust();return LT;}
+    "<=" {adjust();return LE;}
+    ">"  {adjust();return GT;}
+    ">=" {adjust();return GE;}
+    "&"  {adjust();return AND;}
+    "|"  {adjust();return OR;}
+    ":=" {adjust();return ASSIGN;}
+    array {adjust();return ARRAY;}
+    if    {adjust();return IF;}
+    then  {adjust();return THEN;}
+    else  {adjust();return ELSE;}
+    while {adjust();return WHILE;}
+    for   {adjust();return FOR;}
+    to    {adjust();return TO;}
+    do    {adjust();return DO;}
+    let   {adjust();return LET;}
+    in    {adjust();return IN;}
+    end   {adjust();return END;}
+    of    {adjust();return OF;}
+    break {adjust();return BREAK;}
+    nil   {adjust();return NIL;}
+    function {adjust();return FUNCTION;}
+    var    {adjust();return VAR;}
+    type   {adjust();return TYPE;}
+
+    [a-zA-Z_][a-zA-Z0-9_]* {adjust();yylval.sval = String(yytext);return ID;}
+    [0-9]* {adjust();yylval.ival = atoi(yytext);return INT;}
+    "\n" {adjust(); EM_newline(); continue;}
+    [\ \t]* {adjust(); continue;}
+
+    \"        {adjust();initStr();BEGIN STR;}
+    <<EOF>>   {return 0;}
+    .         {adjust();EM_error(EM_tokPos, "error initial");}
+}
+
     /* STR: handle strings */
-<STR>\" {
-    charPos += yyleng;
-    str[len] = '\0';
-    yylval.sval = String(str);
-    if(len == 0)//return (null)
-        yylval.sval = NULL;
-    endStr();
-    BEGIN INITIAL;
-    return STRING;
+<STR>{
+    \" {
+        charPos += yyleng;
+        str[len] = '\0';
+        yylval.sval = String(str);
+        if(len == 0)//return (null)
+            yylval.sval = NULL;
+        endStr();
+        BEGIN INITIAL;
+        return STRING;
+    }
+        /* handle \ddd \^C */
+    \\[0-9]{1,3}       {charPos += yyleng, add(atoi(yytext + 1));}
+    \\^[A-Z\[\]\^\_\\] {charPos += yyleng, add(yytext[2] - 'A' + 1);}
+        /* handle \n, \t, \\, \, real \n, \", \...\ */
+    \\n   {charPos += yyleng, add('\n');}
+    \\t   {charPos += yyleng, add('\t');}
+    \\\\  {charPos += yyleng, add('\\');} 
+    \\    {charPos += yyleng, add('\\');}
+    \n    {charPos += yyleng;EM_newline(), add('\n');}
+    \\\"  {charPos += yyleng, add('"');}
+    \\[\n \t\f]+\\ {charPos += yyleng;}
+    .     {charPos += yyleng, add(yytext[0]);}
 }
-    /* handle \ddd \^C */
-<STR>\\[0-9]{1,3}  {charPos += yyleng;str[len++] = atoi(yytext + 1);}
-<STR>\\^[A-Z\[\]\^\_\\] {charPos += yyleng;str[len++] = yytext[2] - 'A' + 1;}
-    /* handle \n, \t, \\, \, real \n, \", \...\ */
-<STR>\\n {charPos += yyleng;str[len++] = '\n';}
-<STR>\\t {charPos += yyleng;str[len++] = '\t';}
-<STR>\\\\  {charPos += yyleng;str[len++] = '\\';} 
-<STR>\\  {charPos += yyleng;str[len++] = '\\';}
-<STR>\n {charPos += yyleng;EM_newline();str[len++] = '\n';}
-<STR>\\\" {charPos += yyleng;str[len++] = '"';}
-<STR>\\[\n \t\f]+\\ {charPos += yyleng;}
-<STR>. {charPos += yyleng;str[len++] = yytext[0];}

@@ -48,9 +48,11 @@ void yyerror(char *s)
   BREAK NIL
   FUNCTION VAR TYPE 
 
-%nonassoc ASSIGN
-%left AND OR
-%nonassoc EQ NEQ LT LE GT GE
+%nonassoc FUNCTION IF WHILE FOR 
+%right ASSIGN
+%left OR
+%left AND
+%nonassoc EQ LT LE GT GE NEQ 
 %left PLUS MINUS
 %left TIMES DIVIDE
 %left UMINUS
@@ -58,8 +60,8 @@ void yyerror(char *s)
 %type <exp> exp expseq
 %type <explist> actuals  nonemptyactuals sequencing sequencing_exps
 %type <var>  lvalue one oneormore
-%type <declist> decs decs_nonempty
-%type <dec>  decs_nonempty_s vardec
+%type <declist> decs
+%type <dec>  dec vardec
 %type <efieldlist> rec rec_nonempty 
 %type <efield> rec_one
 %type <nametylist> tydec
@@ -79,8 +81,13 @@ exp:	lvalue {$$ = A_VarExp(EM_tokPos, $1);}
 		|NIL {$$ = A_NilExp(EM_tokPos);}
 		|INT {$$ = A_IntExp(EM_tokPos, $1);}
 		|STRING {$$ = A_StringExp(EM_tokPos, $1);}
+		|LPAREN RPAREN {$$ = A_SeqExp(EM_tokPos, NULL);}
+		|LPAREN exp RPAREN {$$ = $2;}
+		|LPAREN sequencing RPAREN {$$ = A_SeqExp(EM_tokPos, $2);}
 		|ID LPAREN actuals RPAREN {$$ = A_CallExp(EM_tokPos, S_Symbol($1), $3);} 
-   		|ID LPAREN RPAREN {$$ = A_CallExp(EM_tokPos, S_Symbol($1), NULL);} 
+		|ID LBRACE rec RBRACE {$$ = A_RecordExp(EM_tokPos, S_Symbol($1), $3);} 
+		|ID LBRACK exp RBRACK OF exp{$$ = A_ArrayExp(EM_tokPos, S_Symbol($1), $3, $6);}
+		|lvalue ASSIGN exp {$$ = A_AssignExp(EM_tokPos, $1, $3);}
 		
 		|MINUS exp %prec UMINUS {$$ = A_OpExp(EM_tokPos, A_minusOp, A_IntExp(EM_tokPos, 0), $2);}
 		|exp PLUS exp {$$ = A_OpExp(EM_tokPos, A_plusOp, $1, $3);}
@@ -93,91 +100,75 @@ exp:	lvalue {$$ = A_VarExp(EM_tokPos, $1);}
 		|exp LE exp {$$ = A_OpExp(EM_tokPos, A_leOp, $1, $3);}
 		|exp GT exp {$$ = A_OpExp(EM_tokPos, A_gtOp, $1, $3);}
 		|exp GE exp {$$ = A_OpExp(EM_tokPos, A_geOp, $1, $3);}
-		
-		|ID LBRACE rec RBRACE {$$ = A_RecordExp(EM_tokPos, S_Symbol($1), $3);} 
-		|ID LBRACE RBRACE {$$ = A_RecordExp(EM_tokPos, S_Symbol($1), NULL);} 
-		|LPAREN RPAREN {$$ = A_SeqExp(EM_tokPos, NULL);}
-		|LPAREN sequencing RPAREN {$$ = A_SeqExp(EM_tokPos, $2);}
-		|lvalue ASSIGN exp {$$ = A_AssignExp(EM_tokPos, $1, $3);}
-		|IF exp THEN exp  {$$ = A_IfExp(EM_tokPos, $2, $4, NULL);}
-		|IF exp THEN exp ELSE exp  {$$ = A_IfExp(EM_tokPos, $2, $4, $6);}
-		|exp AND exp {$$ = A_IfExp(EM_tokPos,$1, $3, A_IntExp(EM_tokPos, 0));}
+		|exp AND exp {$$ = A_IfExp(EM_tokPos, $1, $3, A_IntExp(EM_tokPos, 0));}
 		|exp OR exp {$$ = A_IfExp(EM_tokPos, $1, A_IntExp(EM_tokPos, 1), $3);}
-
+		
+		|IF exp THEN exp ELSE exp {$$ = A_IfExp(EM_tokPos, $2, $4, $6);}
+		|IF exp THEN exp {$$ = A_IfExp(EM_tokPos, $2, $4, NULL);}
 		|WHILE exp DO exp {$$ = A_WhileExp(EM_tokPos, $2, $4);}
-		|FOR ID ASSIGN exp TO exp DO exp  {$$ = A_ForExp(EM_tokPos, S_Symbol($2), $4, $6, $8);}
+		|FOR ID ASSIGN exp TO exp DO exp {$$ = A_ForExp(EM_tokPos, S_Symbol($2), $4, $6, $8);}
 		|BREAK {$$ = A_BreakExp(EM_tokPos);}
 		|LET decs IN expseq END {$$ = A_LetExp(EM_tokPos, $2, $4);}
-		|ID LBRACK exp RBRACK OF exp{$$ = A_ArrayExp(EM_tokPos, S_Symbol($1), $3, $6);}
 		;
 
-expseq:	sequencing	{$$ = A_SeqExp(EM_tokPos, $1);};
+lvalue:	oneormore {$$ = $1;};
 
-actuals:	{$$ = NULL;}
-			|nonemptyactuals {$$ = $1;};
+oneormore:	one {$$ = $1;}
+         |	oneormore DOT ID {$$ = A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
+         |	oneormore LBRACK exp RBRACK {$$ = A_SubscriptVar(EM_tokPos, $1, $3);};
 
-nonemptyactuals:	exp	{$$ = A_ExpList($1, NULL);}
-					|exp COMMA nonemptyactuals {$$ = A_ExpList($1, $3);};
+one:ID {$$ = A_SimpleVar(EM_tokPos, S_Symbol($1));}
+   |ID DOT ID {$$ = A_FieldVar(EM_tokPos, A_SimpleVar(EM_tokPos, S_Symbol($1)), S_Symbol($3));}
+   |ID LBRACK exp RBRACK {$$ = A_SubscriptVar(EM_tokPos, A_SimpleVar(EM_tokPos, S_Symbol($1)), $3);};
 
-sequencing:	exp	SEMICOLON sequencing_exps {$$ = A_ExpList($1, $3);};
+expseq:	{$$ = NULL;}
+	  |	sequencing_exps	{$$ = A_SeqExp(EM_tokPos, $1);};
 
-sequencing_exps:	exp	{$$ = A_ExpList($1, NULL);}
-					|exp SEMICOLON sequencing_exps {$$ = A_ExpList($1, $3);};
+sequencing:	exp SEMICOLON sequencing_exps {$$ = A_ExpList($1, $3);};
 
-lvalue: oneormore {$$ = $1;};
+sequencing_exps:exp {$$ = A_ExpList($1, NULL);}
+               |exp SEMICOLON sequencing_exps {$$ = A_ExpList($1, $3);};
 
-oneormore: 	one {$$ = $1;}
-			|oneormore DOT ID {$$ = A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
-			|oneormore LBRACK exp RBRACK {$$ = A_SubscriptVar(EM_tokPos, $1, $3);};
+actuals: {$$ = NULL;}
+	   | nonemptyactuals {$$ = $1;};
 
-one:	ID {$$ = A_SimpleVar(EM_tokPos, S_Symbol($1));}
-		|lvalue DOT ID {$$ = A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
-		|lvalue LBRACK exp RBRACK {$$ = A_SubscriptVar(EM_tokPos, $1, $3);};
- 
+nonemptyactuals: exp {$$ = A_ExpList($1, NULL);}
+		   	   | exp COMMA nonemptyactuals {$$ = A_ExpList($1, $3);};
+
 decs:	{$$ = NULL;}
-		|decs_nonempty {$$ = $1;};
+	|	dec decs {$$ = A_DecList($1, $2);};
 
-decs_nonempty:	decs_nonempty_s decs {$$ = A_DecList($1, $2);};
+dec:	vardec {$$ = $1;}
+   |	tydec {$$ = A_TypeDec(EM_tokPos, $1);}
+   |	fundec {$$ = A_FunctionDec(EM_tokPos, $1);};
 
-decs_nonempty_s:	vardec {$$ = $1;}
-					|tydec {$$ = A_TypeDec(EM_tokPos, $1);}
-					|fundec {$$ = A_FunctionDec(EM_tokPos, $1);};
+vardec:	VAR ID ASSIGN exp  {$$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol(""), $4);}
+      |	VAR ID COLON ID ASSIGN exp  {$$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol($4), $6);};
 
-vardec:		VAR ID ASSIGN exp  {$$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol(""), $4);}
-            |VAR ID COLON ID ASSIGN exp  {$$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol($4), $6);}; 
-
-rec:	{$$ = NULL;}
-		|rec_nonempty {$$ = $1;};
-
-rec_nonempty:	rec_one {$$ = A_EfieldList($1, NULL);}
-				|rec_one COMMA rec_nonempty {$$ = A_EfieldList($1, $3);}; 	
-
-rec_one:	ID EQ exp {$$ = A_Efield(S_Symbol($1), $3);};
-
-tydec:	tydec_one {$$ = A_NametyList($1,NULL);}
-		|tydec_one tydec  {$$ = A_NametyList($1,$2);};
+tydec:	tydec_one {$$ = A_NametyList($1, NULL);}
+	 |	tydec_one tydec  {$$ = A_NametyList($1, $2);};
 
 tydec_one:	TYPE ID EQ ty {$$ = A_Namety(S_Symbol($2), $4);};
 
-tyfields:	{$$ = NULL;}
-			|tyfields_nonempty	{$$ = $1;};
+ty:	ID {$$ = A_NameTy(EM_tokPos, S_Symbol($1));}
+  |	LBRACE tyfields RBRACE {$$ = A_RecordTy(EM_tokPos, $2);}
+  |	ARRAY OF ID {$$ = A_ArrayTy(EM_tokPos, S_Symbol($3));};
 
-tyfields_nonempty:	ID COLON ID {$$ = A_FieldList(A_Field(EM_tokPos, S_Symbol($1), S_Symbol($3)), NULL);}
-					|ID COLON ID COMMA tyfields_nonempty {$$ = A_FieldList(A_Field(EM_tokPos, S_Symbol($1), S_Symbol($3)), $5);};
-
-ty:		ID {$$ = A_NameTy(EM_tokPos, S_Symbol($1));}
-		|LBRACE tyfields RBRACE {$$ = A_RecordTy(EM_tokPos, $2);}
-		|ARRAY OF ID {$$ = A_ArrayTy(EM_tokPos, S_Symbol($3));};
-
+tyfields:{$$ = NULL;}
+		|tyfields_nonempty	{$$ = $1;}
+		;
+tyfields_nonempty: ID COLON ID {$$ = A_FieldList(A_Field(EM_tokPos, S_Symbol($1), S_Symbol($3)), NULL);}
+				 | ID COLON ID COMMA tyfields_nonempty {$$ = A_FieldList(A_Field(EM_tokPos, S_Symbol($1), S_Symbol($3)), $5);};		 
 fundec:	fundec_one {$$ = A_FundecList($1, NULL);}
-		|fundec_one fundec {$$ = A_FundecList($1, $2);};
-
+	  |	fundec_one fundec {$$ = A_FundecList($1, $2);};
 fundec_one:	FUNCTION ID LPAREN tyfields RPAREN EQ exp {$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, S_Symbol(""), $7);}
-				|FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp {$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, S_Symbol($7), $9);}
-				|FUNCTION ID LPAREN RPAREN EQ exp {$$ = A_Fundec(EM_tokPos, S_Symbol($2), NULL, S_Symbol(""), $6);}
-				|FUNCTION ID LPAREN RPAREN COLON ID EQ exp {$$ = A_Fundec(EM_tokPos, S_Symbol($2), NULL, S_Symbol($6), $8);};
+		  |	FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp {$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, S_Symbol($7), $9);};
+rec: {$$ = NULL;}
+   | rec_nonempty {$$ = $1;};
 
+rec_nonempty:	rec_one {$$ = A_EfieldList($1, NULL);}
+			|rec_one COMMA rec_nonempty {$$ = A_EfieldList($1, $3);};
 
-
+rec_one:	ID EQ exp {$$ = A_Efield(S_Symbol($1), $3);};
 
 
