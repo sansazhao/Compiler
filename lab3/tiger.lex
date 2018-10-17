@@ -81,7 +81,7 @@ void endStr(){
 
   /* Regular Expressions and Actions */
 <COMMENT>{
-    "/*" {adjust();++comment;BEGIN COMMENT;}
+    "/*" {adjust();++comment;}
     "*/" {
         adjust();
         comment--;
@@ -89,11 +89,10 @@ void endStr(){
             BEGIN INITIAL;
         if(comment < 0){
             comment = 0;
-            EM_error(EM_tokPos,"error comment");
             BEGIN INITIAL;
         } 
     }
-    "\n" {adjust();EM_newline();continue;}
+    "\n" {adjust(); EM_newline();}
     . {adjust();}
 }
 
@@ -142,12 +141,12 @@ void endStr(){
 
     [a-zA-Z_][a-zA-Z0-9_]* {adjust();yylval.sval = String(yytext);return ID;}
     [0-9]*  {adjust();yylval.ival = atoi(yytext);return INT;}
-    "\n"    {adjust(); EM_newline(); continue;}
+   
     [\ \t]* {adjust(); continue;}
-
-    \"        {adjust();initStr();BEGIN STR;}
-    <<EOF>>   {return 0;}
-    .         {adjust();EM_error(EM_tokPos, "error initial");}
+    "\n"    {adjust(); EM_newline(); continue;}
+    \"      {adjust();initStr();BEGIN STR;}
+    .       {adjust();EM_error(EM_tokPos, "error initial");}
+   
 }
 
     /* STR: handle strings */
