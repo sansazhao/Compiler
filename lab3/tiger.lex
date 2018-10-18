@@ -2,7 +2,9 @@
 /* Lab2 Attention: You are only allowed to add code in this file and start at Line 26.*/
 #include <string.h>
 #include "util.h"
-#include "tokens.h"
+#include "symbol.h"
+#include "absyn.h"
+#include "y.tab.h"
 #include "errormsg.h"
 
 int charPos=1;
@@ -79,7 +81,7 @@ void endStr(){
 
   /* Regular Expressions and Actions */
 <COMMENT>{
-    "/*" {adjust();++comment;BEGIN COMMENT;}
+    "/*" {adjust();++comment;}
     "*/" {
         adjust();
         comment--;
@@ -87,11 +89,10 @@ void endStr(){
             BEGIN INITIAL;
         if(comment < 0){
             comment = 0;
-            EM_error(EM_tokPos,"error comment");
             BEGIN INITIAL;
         } 
     }
-    "\n" {adjust();EM_newline();continue;}
+    "\n" {adjust(); EM_newline();}
     . {adjust();}
 }
 
@@ -139,13 +140,13 @@ void endStr(){
     type   {adjust();return TYPE;}
 
     [a-zA-Z_][a-zA-Z0-9_]* {adjust();yylval.sval = String(yytext);return ID;}
-    [0-9]* {adjust();yylval.ival = atoi(yytext);return INT;}
-    "\n" {adjust(); EM_newline(); continue;}
+    [0-9]*  {adjust();yylval.ival = atoi(yytext);return INT;}
+   
     [\ \t]* {adjust(); continue;}
-
-    \"        {adjust();initStr();BEGIN STR;}
-    <<EOF>>   {return 0;}
-    .         {adjust();EM_error(EM_tokPos, "error initial");}
+    "\n"    {adjust(); EM_newline(); continue;}
+    \"      {adjust();initStr();BEGIN STR;}
+    .       {adjust();EM_error(EM_tokPos, "error initial");}
+   
 }
 
     /* STR: handle strings */
@@ -155,7 +156,7 @@ void endStr(){
         str[len] = '\0';
         yylval.sval = String(str);
         if(len == 0)//return (null)
-            yylval.sval = NULL;
+            yylval.sval = "";
         endStr();
         BEGIN INITIAL;
         return STRING;
