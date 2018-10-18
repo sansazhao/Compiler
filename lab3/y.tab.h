@@ -142,7 +142,7 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 19 "tiger.y" /* yacc.c:1909  */
+#line 21 "tiger.y" /* yacc.c:1909  */
 
 	int pos;
 	int ival;

@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include "util.h"
 #include "errormsg.h"
 #include "symbol.h"
@@ -12,6 +13,7 @@ A_exp absyn_root;
 void yyerror(char *s)
 {
  EM_error(EM_tokPos, "%s", s);
+ exit(1);		//handle test49 nil
 }
 %}
 
@@ -57,9 +59,9 @@ void yyerror(char *s)
 %left UMINUS
 
 %type <exp> exp expseq
-%type <explist> actuals sequencing sequencing_exps
+%type <explist> actuals sequencing
 %type <var>  lvalue 
-%type <declist>decs decs_nonempty
+%type <declist>decs
 %type <dec>  dec vardec
 %type <efieldlist> rec rec_nonempty 
 %type <efield> rec_one
@@ -87,7 +89,6 @@ exp:	lvalue {$$ = A_VarExp(EM_tokPos, $1);}
 
 		|ID LPAREN actuals RPAREN {$$ = A_CallExp(EM_tokPos, S_Symbol($1), $3);} 
 		|ID LPAREN RPAREN {$$ = A_CallExp(EM_tokPos, S_Symbol($1), NULL);} 
-
 		|ID LBRACE rec RBRACE {$$ = A_RecordExp(EM_tokPos, S_Symbol($1), $3);} 
 		|ID LBRACK exp RBRACK OF exp{$$ = A_ArrayExp(EM_tokPos, S_Symbol($1), $3, $6);}
 		|lvalue ASSIGN exp {$$ = A_AssignExp(EM_tokPos, $1, $3);}
@@ -118,30 +119,19 @@ lvalue: ID {$$=A_SimpleVar(EM_tokPos, S_Symbol($1));}
       	|lvalue DOT ID {$$=A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
     	|lvalue LBRACK exp RBRACK {$$=A_SubscriptVar(EM_tokPos, $1, $3);}
 	    |ID LBRACK exp RBRACK {$$=A_SubscriptVar(EM_tokPos, A_SimpleVar(EM_tokPos, S_Symbol($1)), $3);};
-/*
-oneormore:	one {$$ = $1;}
-         	|oneormore DOT ID {$$ = A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
-         	|oneormore LBRACK exp RBRACK {$$ = A_SubscriptVar(EM_tokPos, $1, $3);};
 
-one:ID {$$ = A_SimpleVar(EM_tokPos, S_Symbol($1));}
-   |ID DOT ID {$$ = A_FieldVar(EM_tokPos, A_SimpleVar(EM_tokPos, S_Symbol($1)), S_Symbol($3));}
-   |ID LBRACK exp RBRACK {$$ = A_SubscriptVar(EM_tokPos, A_SimpleVar(EM_tokPos, S_Symbol($1)), $3);};
-*/
 expseq:	{$$ = NULL;}
-	  |	sequencing_exps	{$$ = A_SeqExp(EM_tokPos, $1);};
+		|exp {$$ = A_SeqExp(EM_tokPos, A_ExpList($1, NULL));}
+		|sequencing {$$ = A_SeqExp(EM_tokPos, $1);};
 
-sequencing_exps:exp {$$ = A_ExpList($1, NULL);}
-               |exp SEMICOLON sequencing_exps {$$ = A_ExpList($1, $3);};
-
-sequencing:	exp SEMICOLON sequencing_exps {$$ = A_ExpList($1, $3);};
+sequencing:	exp SEMICOLON exp {$$ = A_ExpList($1, A_ExpList($3, NULL));}
+			|exp SEMICOLON sequencing {$$ = A_ExpList($1, $3);};
 
 actuals:exp {$$ = A_ExpList($1, NULL);}
 		|exp COMMA actuals {$$ = A_ExpList($1, $3);};
 
 decs:	{$$ = NULL;}
-		|decs_nonempty {$$ = $1;};
-
-decs_nonempty:	dec decs {$$ = A_DecList($1, $2);};
+		|dec decs {$$ = A_DecList($1, $2);};
 
 dec:	vardec {$$ = $1;}
 		|tydec {$$ = A_TypeDec(EM_tokPos, $1);}
