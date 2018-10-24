@@ -50,6 +50,7 @@ void yyerror(char *s)
   BREAK NIL
   FUNCTION VAR TYPE 
 
+%right ARRAY IF THEN ELSE WHILE FOR TO DO LET IN END OF 
 %right ASSIGN
 %left OR
 %left AND

@@ -1,11 +1,6 @@
 State 1 conflicts: 1 shift/reduce
 State 32 conflicts: 1 shift/reduce
 State 34 conflicts: 1 shift/reduce
-State 95 conflicts: 13 shift/reduce
-State 96 conflicts: 12 shift/reduce
-State 122 conflicts: 12 shift/reduce
-State 123 conflicts: 12 shift/reduce
-State 137 conflicts: 12 shift/reduce
 
 
 Grammar
@@ -1838,19 +1833,6 @@ State 95
     OR      shift, and go to state 47
     ELSE    shift, and go to state 110
 
-    PLUS      [reduce using rule 28 (exp)]
-    MINUS     [reduce using rule 28 (exp)]
-    TIMES     [reduce using rule 28 (exp)]
-    DIVIDE    [reduce using rule 28 (exp)]
-    EQ        [reduce using rule 28 (exp)]
-    NEQ       [reduce using rule 28 (exp)]
-    LT        [reduce using rule 28 (exp)]
-    LE        [reduce using rule 28 (exp)]
-    GT        [reduce using rule 28 (exp)]
-    GE        [reduce using rule 28 (exp)]
-    AND       [reduce using rule 28 (exp)]
-    OR        [reduce using rule 28 (exp)]
-    ELSE      [reduce using rule 28 (exp)]
     $default  reduce using rule 28 (exp)
 
 
@@ -1883,18 +1865,6 @@ State 96
     AND     shift, and go to state 46
     OR      shift, and go to state 47
 
-    PLUS      [reduce using rule 29 (exp)]
-    MINUS     [reduce using rule 29 (exp)]
-    TIMES     [reduce using rule 29 (exp)]
-    DIVIDE    [reduce using rule 29 (exp)]
-    EQ        [reduce using rule 29 (exp)]
-    NEQ       [reduce using rule 29 (exp)]
-    LT        [reduce using rule 29 (exp)]
-    LE        [reduce using rule 29 (exp)]
-    GT        [reduce using rule 29 (exp)]
-    GE        [reduce using rule 29 (exp)]
-    AND       [reduce using rule 29 (exp)]
-    OR        [reduce using rule 29 (exp)]
     $default  reduce using rule 29 (exp)
 
 
@@ -2273,18 +2243,6 @@ State 122
     AND     shift, and go to state 46
     OR      shift, and go to state 47
 
-    PLUS      [reduce using rule 12 (exp)]
-    MINUS     [reduce using rule 12 (exp)]
-    TIMES     [reduce using rule 12 (exp)]
-    DIVIDE    [reduce using rule 12 (exp)]
-    EQ        [reduce using rule 12 (exp)]
-    NEQ       [reduce using rule 12 (exp)]
-    LT        [reduce using rule 12 (exp)]
-    LE        [reduce using rule 12 (exp)]
-    GT        [reduce using rule 12 (exp)]
-    GE        [reduce using rule 12 (exp)]
-    AND       [reduce using rule 12 (exp)]
-    OR        [reduce using rule 12 (exp)]
     $default  reduce using rule 12 (exp)
 
 
@@ -2317,18 +2275,6 @@ State 123
     AND     shift, and go to state 46
     OR      shift, and go to state 47
 
-    PLUS      [reduce using rule 27 (exp)]
-    MINUS     [reduce using rule 27 (exp)]
-    TIMES     [reduce using rule 27 (exp)]
-    DIVIDE    [reduce using rule 27 (exp)]
-    EQ        [reduce using rule 27 (exp)]
-    NEQ       [reduce using rule 27 (exp)]
-    LT        [reduce using rule 27 (exp)]
-    LE        [reduce using rule 27 (exp)]
-    GT        [reduce using rule 27 (exp)]
-    GE        [reduce using rule 27 (exp)]
-    AND       [reduce using rule 27 (exp)]
-    OR        [reduce using rule 27 (exp)]
     $default  reduce using rule 27 (exp)
 
 
@@ -2546,18 +2492,6 @@ State 137
     AND     shift, and go to state 46
     OR      shift, and go to state 47
 
-    PLUS      [reduce using rule 30 (exp)]
-    MINUS     [reduce using rule 30 (exp)]
-    TIMES     [reduce using rule 30 (exp)]
-    DIVIDE    [reduce using rule 30 (exp)]
-    EQ        [reduce using rule 30 (exp)]
-    NEQ       [reduce using rule 30 (exp)]
-    LT        [reduce using rule 30 (exp)]
-    LE        [reduce using rule 30 (exp)]
-    GT        [reduce using rule 30 (exp)]
-    GE        [reduce using rule 30 (exp)]
-    AND       [reduce using rule 30 (exp)]
-    OR        [reduce using rule 30 (exp)]
     $default  reduce using rule 30 (exp)
 
 
