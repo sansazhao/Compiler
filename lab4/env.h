@@ -12,6 +12,7 @@ struct E_enventry_ {
 		struct {Ty_ty ty;} var;
 		struct {Ty_tyList formals; Ty_ty result;} fun;
 	} u;
+	int readonly;
 };
 
 E_enventry E_VarEntry(Ty_ty ty);
