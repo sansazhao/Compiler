@@ -49,7 +49,6 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a){
 					EM_error(a->u.op.left->pos, "integer required");
 				if(actual_ty(right.ty)->kind != Ty_int)
 					EM_error(a->u.op.right->pos, "integer required");
-				printf("op re\n");
 				return expTy(NULL, Ty_Int());
 			}
 			else{//eq neq lt le gt ge
@@ -59,6 +58,7 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a){
 			}
 		}
 		case A_letExp:{
+			// printf("let\n");
 			S_beginScope(venv);
 			S_beginScope(tenv);
 			struct expty exp;
@@ -172,9 +172,8 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a){
 			struct expty then = transExp(venv, tenv, a->u.iff.then);
 			if(actual_ty(then.ty)->kind != Ty_void)
 				EM_error(a->pos, "if-then exp's body must produce no value");
-			struct expty elsee;
 			if(a->u.iff.elsee){
-				elsee = transExp(venv, tenv, a->u.iff.elsee);
+				struct expty elsee = transExp(venv, tenv, a->u.iff.elsee);
 				if(actual_ty(then.ty) != actual_ty(elsee.ty))
 					EM_error(a->u.iff.then->pos, "then exp and else exp type mismatch");
 			}
@@ -263,9 +262,7 @@ Ty_tyList makeFormalTyList(S_table tenv, A_fieldList fields){
 void transDec (S_table venv, S_table tenv, A_dec d){
     switch(d->kind){
 		case A_varDec:{
-			printf("vardec\n");
 			struct expty e = transExp(venv, tenv, d->u.var.init);
-			printf("vardec 2\n");
 			if(d->u.var.typ){
 				Ty_ty type = S_look(tenv, d->u.var.typ);
 				if(!type){
@@ -322,9 +319,7 @@ void transDec (S_table venv, S_table tenv, A_dec d){
 					continue;
 				}
 				Ty_ty resultTy;
-				printf("fun 1\n");
 				if(fs->head->result){
-					printf("has result\n");
 					resultTy = S_look(tenv, fs->head->result);
 					if (!resultTy){
 						EM_error(fs->head->pos, "undefined result %s", S_name(fs->head->result));
@@ -333,7 +328,6 @@ void transDec (S_table venv, S_table tenv, A_dec d){
 				}
 				else{
 					resultTy = Ty_Void();
-					printf("no result\n");
 				}
 				Ty_tyList formalTys = makeFormalTyList(tenv, fs->head->params);
 				S_enter(venv, fs->head->name, E_FunEntry(formalTys, resultTy));
@@ -385,7 +379,6 @@ Ty_ty transTy(S_table tenv, A_ty a){
 			return Ty_Name(a->u.name, ty);
 		}
 		case A_recordTy:{
-			printf("recordTy\n");
 			return Ty_Record(makeFieldList(tenv, a->u.record));
 		}
 		case A_arrayTy:{
