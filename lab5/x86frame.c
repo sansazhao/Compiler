@@ -34,7 +34,6 @@ static F_access InFrame(int offset){
 	F_access access = checked_malloc(sizeof(struct F_access_));
 	access->kind = inFrame;
 	access->u.offset = offset;
-	printf("Inframe offset %d\n",offset);
 	return access;
 }
 
@@ -74,13 +73,10 @@ F_frame F_newFrame(Temp_label name, U_boolList formals){
 	f->name = name;
 	f->locals = NULL;
 	f->offset = 0;
-	printf("frame1\n");
 	F_accessList head = malloc(sizeof(struct F_accessList_)); 
     F_accessList tail = head;	
 	int offset = 8;
-	// printf("frame2\n");
 	while(formals){//head f8 f12 f16 ...
-		// printf("frame3\n");
 		if (formals->head != TRUE) {
             printf("Frame: formal parameter should be passed in stack.\n");
         }
@@ -92,7 +88,6 @@ F_frame F_newFrame(Temp_label name, U_boolList formals){
 	// f->offset = offset;
 	// printf("f offset %d\n",f->offset);
 	f->formals = head->tail;
-	printf("frame4\n");
 	return f;	
 }
 
@@ -100,7 +95,6 @@ F_access F_allocLocal(F_frame f, bool escape){
 	F_access access;
 	if(escape){//frame
 		access = InFrame(f->offset);
-		printf("alloc Inframe %d\n",f->offset);
 		f->offset += wordSize;
 	}
 	else{//reg

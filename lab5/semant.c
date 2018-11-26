@@ -46,26 +46,27 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 			|| oper == A_timesOp || oper == A_divideOp) {
 				if(actual_ty(left.ty)->kind != Ty_int){
 					EM_error(a->u.op.left->pos, "integer required");
-					return expTy(NULL, Ty_Int());
+					return expTy(Tr_nil(), Ty_Int());
 				}
 				if(actual_ty(right.ty)->kind != Ty_int){
 					EM_error(a->u.op.right->pos, "integer required");
-					return expTy(NULL, Ty_Int());
+					return expTy(Tr_nil(), Ty_Int());
 				}
 				//IR
 				return expTy(Tr_arithExp(oper, left.exp, right.exp), Ty_Int());
 			}
 			else{//eq neq lt le gt ge
-				if(actual_ty(left.ty) != actual_ty(right.ty)){
+				if(actual_ty(left.ty) != actual_ty(right.ty)
+					 && !(actual_ty(left.ty)->kind == Ty_record && actual_ty(right.ty)->kind == Ty_nil)){
 					EM_error(a->pos, "same type required");
-					return expTy(NULL, Ty_Int());
+					return expTy(Tr_nil(), Ty_Int());
 				}
 				//IR
 				return expTy(Tr_relExp(oper, left.exp, right.exp), Ty_Int());
 			}
 		}
 		case A_letExp:{
-			printf("let\n");
+			// printf("let\n");
 			S_beginScope(venv);
 			S_beginScope(tenv);
 			struct expty exp;
@@ -95,7 +96,9 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 				Tr_expList list = Tr_ExpList(NULL, NULL), t = list;
 				while(expect && actual){
 					struct expty exp_arg = transExp(venv, tenv, actual->head, l, breakLabel);
-					if(actual_ty(exp_arg.ty)->kind != actual_ty(expect->head)->kind)
+					if(actual_ty(exp_arg.ty)->kind != actual_ty(expect->head)->kind
+						&& !(actual_ty(expect->head)->kind == Ty_record
+							 && actual_ty(exp_arg.ty)->kind == Ty_nil))
 						EM_error(actual->head->pos, "para type mismatch");
 					expect = expect->tail;
 					actual = actual->tail;
@@ -114,7 +117,7 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 			}
 		}
 		case A_recordExp:{
-			printf("record\n");
+			// printf("record\n");
 			Ty_ty ty = S_look(tenv, a->u.record.typ);
 			ty = actual_ty(ty);
 			if(!ty){
@@ -130,7 +133,9 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 				if(actual->head->name != expect->head->name)
 					EM_error(a->pos, "record name doesn't exist %s", S_name(a->u.record.typ));
 				struct expty exp_rec = transExp(venv, tenv, actual->head->exp, l ,breakLabel);
-				if(actual_ty(exp_rec.ty) != actual_ty(expect->head->ty))
+				if(actual_ty(exp_rec.ty) != actual_ty(expect->head->ty)
+					&& !(actual_ty(expect->head->ty)->kind == Ty_record
+							 && actual_ty(exp_rec.ty)->kind == Ty_nil))
 					EM_error(a->pos, "para type mismatch");
 				expect = expect->tail;
 				actual = actual->tail;
@@ -153,7 +158,10 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 			if(actual_ty(size.ty)->kind != Ty_int)
 				EM_error(a->pos, "size of array should be int %s", S_name(a->u.array.typ));
 			struct expty init = transExp(venv, tenv, a->u.array.init, l, breakLabel);
-			if(actual_ty(init.ty) != actual_ty(ty->u.array))
+			Ty_ty expect = actual_ty(ty->u.array);
+			Ty_ty actual = actual_ty(init.ty);
+			if( actual != expect
+					&& !(actual->kind == Ty_nil))
 				EM_error(a->pos, "type mismatch");
 			return expTy(Tr_arrayExp(size.exp, init.exp), ty);
 		}
@@ -164,13 +172,10 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 			Tr_exp eseq = Tr_nil();
 			Ty_ty type = Ty_Void();
 			while(seq){
-				// printf("seqExp1\n");
 				ty = transExp(venv, tenv, seq->head, l, breakLabel);
-				// printf("seqExp2\n");
 				eseq = Tr_eseq(eseq, ty.exp);
 				type = ty.ty;
 				seq = seq->tail;
-				// printf("seqExp3\n");
 			}
 			return expTy(eseq, type);
 		}
@@ -183,21 +188,25 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 			}
 			struct expty var = transVar(venv, tenv, a->u.assign.var, l, breakLabel);
 			struct expty exp = transExp(venv, tenv, a->u.assign.exp, l, breakLabel);
-			if(actual_ty(var.ty) != actual_ty(exp.ty))
+			if(actual_ty(var.ty) != actual_ty(exp.ty)
+			 && !(actual_ty(var.ty)->kind == Ty_record && actual_ty(exp.ty)->kind == Ty_nil))
 				EM_error(a->pos, "unmatched assign exp");
 			return expTy(Tr_assignExp(var.exp, exp.exp), Ty_Void());
 		}
 		case A_ifExp:{
 			struct expty test = transExp(venv, tenv, a->u.iff.test, l, breakLabel);
-			// if(actual_ty(test.ty)->kind != Ty_int)
-			// 	EM_error(a->pos, "");
 			struct expty then = transExp(venv, tenv, a->u.iff.then, l, breakLabel);
-			if(actual_ty(then.ty)->kind != Ty_void)
-				EM_error(a->pos, "if-then exp's body must produce no value");
+			// if(actual_ty(then.ty)->kind != Ty_void)
+			// 	EM_error(a->pos, "if-then exp's body must produce no value");
 			struct expty elsee;
+			//elsee != NULL
 			if(a->u.iff.elsee){
 				elsee = transExp(venv, tenv, a->u.iff.elsee, l, breakLabel);
-				if(actual_ty(then.ty) != actual_ty(elsee.ty))
+				if(!elsee.ty || elsee.ty->kind == Ty_nil)
+					return expTy(Tr_ifExp(test.exp, then.exp, NULL), then.ty);
+				if(!then.ty);
+				else if(actual_ty(then.ty) != actual_ty(elsee.ty)
+				&& !(actual_ty(then.ty)->kind == Ty_record && actual_ty(elsee.ty)->kind == Ty_nil))
 					EM_error(a->u.iff.then->pos, "then exp and else exp type mismatch");
 			}
 			return expTy(Tr_ifExp(test.exp, then.exp, elsee.exp), then.ty);
@@ -214,7 +223,8 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_lab
 			S_enter(venv, a->u.forr.var, E_ROVarEntry(acc, Ty_Int()));
 			struct expty body = transExp(venv, tenv, a->u.forr.body, l, breakLabel);
 			S_endScope(venv);
-			if(actual_ty(body.ty)->kind != Ty_void)
+			if(!body.ty);
+			else if(actual_ty(body.ty)->kind != Ty_void)
 				EM_error(a->pos, "the body of for should be void ");
 			Temp_label done = Temp_newlabel();
 			return expTy(Tr_forExp(l, acc, lo.exp, hi.exp, body.exp, done), Ty_Void());
@@ -315,7 +325,9 @@ Tr_exp transDec (S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label bre
 				if(!type){
 					EM_error(d->u.var.init->pos, "type not exist %s", S_name(d->u.var.typ));
 				}
-				if(actual_ty(type) != actual_ty(e.ty)) {
+				if(actual_ty(type) != actual_ty(e.ty)
+				 	&& !(actual_ty(type)->kind == Ty_record 
+					 		&& actual_ty(e.ty)->kind == Ty_nil)) {
 					EM_error(d->u.var.init->pos, "type mismatch");
 				}
 				// printf("var dec1 %s\n",S_name(d->u.var.var));
@@ -324,9 +336,7 @@ Tr_exp transDec (S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label bre
 			else{
 				if (actual_ty(e.ty)->kind == Ty_nil)
 					EM_error(d->u.var.init->pos, "init should not be nil without type specified");
-				// printf("var dec2 %s\n",S_name(d->u.var.var));
 				S_enter(venv, d->u.var.var, E_VarEntry(acc, e.ty));
-				// printf("vardec 1\n");
 			}
 			return Tr_assignExp(Tr_simpleVar(acc, l), e.exp);
 		}
@@ -335,7 +345,7 @@ Tr_exp transDec (S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label bre
 			A_nametyList types 	= d->u.type;
 			while(types){	
 				if(S_look(tenv, types->head->name)){
-					EM_error(d->pos, "two types have the same name");
+					// EM_error(d->pos, "two types have the same name");
 				}
 				else{
 					S_enter(tenv, types->head->name, Ty_Name(types->head->name, NULL));
@@ -343,13 +353,6 @@ Tr_exp transDec (S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label bre
 				}
 				types = types->tail;	
 			}
-
-			// // add type declarations to table
-            // types = d->u.type;
-            // while (types) {
-            //     S_enter(tenv, types->head->name, Ty_Name(types->head->name, NULL));
-            //     types = types->tail;
-            // }
 			
 			types = d->u.type;
 			while(types){	//put binding
@@ -383,7 +386,7 @@ Tr_exp transDec (S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label bre
 			A_fundecList fs = d->u.function;
 			while(fs){
 				if(S_look(venv, fs->head->name)){
-					EM_error(d->pos,"two functions have the same name");
+					// EM_error(d->pos,"two functions have the same name");
 					fs = fs->tail;
 					continue;
 				}
@@ -420,10 +423,13 @@ Tr_exp transDec (S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label bre
 					S_enter(venv, params->head->name, E_VarEntry(formals->head, type));
 				}
 				//trans body
-				struct expty body = transExp(venv, tenv, fs->head->body, l, breakLabel);
+				struct expty body = transExp(venv, tenv, fs->head->body, entry->u.fun.level, breakLabel);
 				E_enventry x = S_look(venv, fs->head->name);
-				if(actual_ty(x->u.fun.result)->kind == Ty_void && 
-					actual_ty(body.ty)->kind != Ty_void)
+				if(!body.ty);
+				// if(actual_ty(x->u.fun.result)->kind == Ty_void && 
+				// 	actual_ty(body.ty)->kind != Ty_void)
+				else if(x->u.fun.result->kind == Ty_void && 
+					body.ty->kind != Ty_void)
 					EM_error(fs->head->pos,"procedure returns value");
 				S_endScope(venv);
 
