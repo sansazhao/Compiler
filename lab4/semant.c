@@ -112,7 +112,7 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a){
 			if(ty->kind != Ty_record)
 				EM_error(a->pos, "not record  %s", S_name(a->u.record.typ));
 			A_efieldList actual = a->u.record.fields;
-			A_fieldList expect = ty->u.record;
+			Ty_fieldList expect = ty->u.record;
 			while(actual && expect){
 				if(actual->head->name != expect->head->name)
 					EM_error(a->pos, "record name doesn't exist %s", S_name(a->u.record.typ));
