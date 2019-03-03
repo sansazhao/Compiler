@@ -85,8 +85,6 @@ F_frame F_newFrame(Temp_label name, U_boolList formals){
 		tail = tail->tail;
 		formals = formals->tail;
 	}
-	// f->offset = offset;
-	// printf("f offset %d\n",f->offset);
 	f->formals = head->tail;
 	return f;	
 }
