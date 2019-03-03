@@ -55,7 +55,6 @@ static struct Cx unCx(Tr_exp e);
 
 // frame - constructor
 Tr_access Tr_Access(Tr_level level, F_access access){
-	// printf("tr access\n");
 	Tr_access a = checked_malloc(sizeof(*a));
 	a->level = level;
 	a->access = access;
@@ -139,7 +138,6 @@ Tr_exp Tr_simpleVar(Tr_access acc, Tr_level l){
 
     T_exp t_exp = F_Exp(acc->access, access_frame);
     return Tr_Ex(t_exp);
-	// return Tr_Ex(F_Exp(acc->access, staticLink(l, acc->level)));
 }
 
 //find the field directly by index: ptr + 4*index
@@ -284,11 +282,6 @@ Tr_exp Tr_whileExp(Tr_exp test, Tr_exp body, Temp_label done){
 	Temp_label bodyLabel = Temp_newlabel();
 	doPatch(cx.trues, bodyLabel);
 	doPatch(cx.falses, done);
-	//cx -> label t -> body -> jmp to label t... jmp done
- 	// T_stm test_stm = T_Seq(T_Label(testLabel), cx.stm);
-	// T_stm body_stm = T_Seq(T_Label(bodyLabel),
-	// 					   T_Seq(unNx(body), T_Jump(T_Name(testLabel), 
-	// 					   							Temp_LabelList(testLabel, NULL))));
 	T_stm stm = T_Seq(T_Label(testLabel),
 				T_Seq(cx.stm,		//true body;false done
 				T_Seq(T_Label(bodyLabel),
@@ -357,7 +350,6 @@ Tr_expList Tr_ExpList(Tr_exp head, Tr_expList tail){
 
 static Tr_exp Tr_Ex(T_exp e){
 	Tr_exp ex = checked_malloc(sizeof(*ex));
-	// printf("tr ex\n");
 	ex->kind = Tr_ex;
 	ex->u.ex = e;
 	return ex;
@@ -365,7 +357,6 @@ static Tr_exp Tr_Ex(T_exp e){
 
 static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm){
 	Tr_exp cx = checked_malloc(sizeof(*cx));
-	// printf("tr cx\n");
 	cx->kind = Tr_cx;
 	cx->u.cx.trues = trues;
 	cx->u.cx.falses = falses;
@@ -375,7 +366,6 @@ static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm){
 
 static Tr_exp Tr_Nx(T_stm s){
 	Tr_exp nx = checked_malloc(sizeof(*nx));
-	// printf("tr nx\n");
 	nx->kind = Tr_nx;
 	nx->u.nx = s;
 	return nx;
